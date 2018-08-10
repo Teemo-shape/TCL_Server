@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="initial-scale=1,maximum-scale=1, minimum-scale=1">
+    	<meta name="format-detection" content="telephone=no"/>
+		<title>问卷调查</title>
+		<link rel="stylesheet" type="text/css" href="css/public.css"/>
+		<link rel="stylesheet" href="css/questionnaireSurvey.css">
+		<script>
+			var deviceWidth = document.documentElement.clientWidth;
+      		if(deviceWidth > 750) deviceWidth = 750;
+      		document.documentElement.style.fontSize = deviceWidth / 7.5 + 'px';
+		</script>
+	</head>
+	<body>
+		<section class="question-wrap">
+			<div class="question-tip">
+				<h1 class="question-title">TCL用户服务调研问卷</h1>
+				<div class="question-txt">为了给您带来更优质的服务体验，诚邀您对TCL服务进行评价，评价后可进行大转盘抽奖。</div>
+			</div>	
+			<!--打分-->
+			<div class="question-score level1">
+				<p class="question-one">1、请您对本次服务进行打分！<span class="font-color">*</span></p>
+				<!-- 星星区域-->
+		        <ul class="star-ul clearfix">                   	
+				    <li class="star" num="1"></li>
+				    <li class="star" num="2"></li>
+				    <li class="star" num="3"></li>
+				    <li class="star" num="4"></li>
+				    <li class="star" num="5"></li>
+				</ul>
+				<div class="star-tip"></div>	
+				<ul class="star-content clearfix"></ul>
+			</div>
+			<!--推荐-->
+			<div class="question-recom level1">
+				<p class="question-one">2、请问您有多大的意愿想您的亲朋好友推荐TCL呢？<span class="font-color">*</span></p>
+				<div class="question-two-tip"> (10分为“非常愿意”,0分为“非常不愿意”)</div>
+				<ul class="question-two-score clearfix">
+					<li class="question-two-scoreitem">10</li>
+					<li class="question-two-scoreitem">9</li>
+					<li class="question-two-scoreitem">8</li>
+					<li class="question-two-scoreitem">7</li>
+					<li class="question-two-scoreitem">6</li>
+					<li class="question-two-scoreitem">5</li>
+					<li class="question-two-scoreitem">4</li>
+					<li class="question-two-scoreitem">3</li>
+					<li class="question-two-scoreitem">2</li>
+					<li class="question-two-scoreitem">1</li>
+					<li class="question-two-scoreitem">0</li>
+				</ul>
+			</div>		
+			
+			<div class="question-opinion">
+				<p class="question-one">3、请问您对TCL的产品及服务还有其它意见或建议吗？</p>
+				<textarea class="opinion"></textarea>
+			</div>
+			<div class="submit-box"><button class="question-submit">提交</button></div>
+		</section>
+	</body>
+	
+	<script src="js/zepto.js"></script>
+	<script src="js/data.js"></script>
+	
+	<script type="text/javascript">
+		var questionFn = {
+			listElem: $('.question-wrap'),
+			lastLabelNum: null, // 上一次点击的星星
+			listLabel: [], 
+			manyiFlag: null,
+			recommendQuestion: null,	//保存推荐问题获取到的数据
+			
+		    listQuestion: {
+		    	score: {	//星星题
+		    		num: 0,	//星星数
+		    		label: [],	//星星题的选中标签
+		    	},
+		    	recommend: {	//推荐题
+		    		score: null,
+		    		level2: {
+		    			id: null,
+		    			answers: [],
+		    		},
+		    		level3: [
+//			    		{
+//			    			id: "2221",
+//			    			answers: [],
+//			    		}
+		    		]
+		    	},
+		    	advice: "",
+		    },
+		    init () {
+		    	this.getScoreLabel()
+		      	this.questionShow()
+		      	this.selectOption()
+		      	this.submitData()
+		      	$('.question-two-scoreitem').click(function(){
+					$(this).addClass("active");
+	        		$(this).siblings().removeClass("active");
+				});
+		    },
+		    // 星星分数；
+		    getScoreLabel () {
+		    	let me = this;
+		       	me.listLabel = data.star;
+		       	me.createLabel()
+		       	me.changeLabel()
+		    },
+		    // 推荐分数（0-10分）的 因分值不同而变动的问题
+		    getQuestion (val) {
+		    	let me = this;
+		    	let flag, optionStr = '',data_flag = 0;
+		    	me.listQuestion.recommend.score = val ;
+				if (9<=val && val<=10) {
+					data_flag = 0;
+				}else if(7<=val && val<=8){
+					data_flag = 1;
+				}else if(7>val ){
+					data_flag = 2;
+				}
+				flag = data_flag+1;
+				if(me.manyiFlag === flag) return;
+				me.manyiFlag = flag
+				me.listQuestion.recommend.level2.id = data.question[data_flag].id; // 保存level2的id
+				if($(".level2".length>0)){
+					$(".level2").remove();
+					$(".level3").remove();
+				}
+				var questionHtml = `<div class="question required level2">
+									<p class="question-one"></p>
+									<ul class="option-cont"></ul>
+								</div>`;
+				$(".question-opinion").before(questionHtml);
+				
+	    		$(".level2 .question-one").html(data.question[data_flag].index + data.question[data_flag].title+'<span class="font-color">*</span>'); // 值得推荐问题
+	    		data.question[data_flag].answers.forEach(function (answer) {
+	    			if (answer.degree == "其它") {
+	    				optionStr += `<li class="option-item other" id="${answer.id}"><span class="checkbox"><img src="img/check2.png"></span><i>${answer.degree}</i></li>
+	    							<textarea class="textarea"></textarea>`;
+	    			} else {
+	    				optionStr += `<li class="option-item" id="${answer.id}"><span class="checkbox"><img src="img/check2.png"></span><i>${answer.degree}</i></li>`;
+	    			}
+	    		})
+	    		me.recommendQuestion = data.question[data_flag]; 
+			
+				$(".level2 .option-cont").html(optionStr);
+			},
+		    // 点击题目的选项(多选)
+		    selectOption() {
+		    	var me = this;
+		    	me.listElem.on("click", ".option-item", function () {
+		    		var value = $(this).find("i").text();
+		    		if ($(this).hasClass("active")) {
+		    			$(this).find("img").attr("src", "img/check2.png");
+		    			$(this).removeClass("active");
+		    			if ($(this).find("i").text() == "其它") {
+							$(this).siblings(".textarea").removeClass("active");
+						}
+		    		} else{
+		    			$(this).find("img").attr("src", "img/check1.png");
+		    			$(this).addClass("active");
+						if ($(this).find("i").text() == "其它") {
+							$(this).siblings(".textarea").addClass("active");
+						}
+		    		}
+		    	});
+		    	//level2的选中效果
+		    	me.listElem.on("click", ".level2 .option-item", function () {
+		    		//TODO 添加或删除level3的问题
+		    		//判断有无class，注意事件先后顺序，与上面事件对比
+		    		//此处按事件发生在上者之后
+		    		var optionId = $(this).attr("id");//问题2的选项id，同时也对应了level3问题的id
+		    		if ($(this).hasClass("active")) {
+		    			//添加问题   你选了2.1的选项，知道给你什么问题，除了其他，每一个选项都对应了一个问题，不循环就不知道添加哪个问题
+		    			me.recommendQuestion.answers.forEach(function (question) {
+		    				if (question.id == optionId) {
+		    					me.listQuestion.recommend.level2.answers.push(question.id);
+		    					if (question.degree == "其它") {
+		    						return;
+		    					}
+		    					me.listQuestion.recommend.level3.push({
+		    						id: question.id,
+		    						answers: [],
+		    					})
+		    					//拿到问题了，问题就是question.question以及question.answers
+		    					var qiestionHtml = `<div class="question level3" data-id="${optionId}">
+													<p class="question-one"></p>
+													<ul class="option-cont"></ul>
+												</div>`;
+								$(".question-opinion").before(qiestionHtml);
+								var current_question = $(".level3[data-id='"+optionId+"']"); //当前问题
+								var titleIndex = me.recommendQuestion.index;
+								current_question.find(".question-one").html(titleIndex+"<i></i>"+question.question);
+								var option = "";
+		    					question.answers.forEach(function (answer) {
+					    			if (answer.text == "其它") {
+					    				option += `<li class="option-item other" id="${answer.id}" parent-id="${optionId}"><span class="checkbox"><img src="img/check2.png"></span><i>${answer.text}</i></li>
+					    							<textarea class="textarea"></textarea>`;
+					    			} else{
+					    				option += `<li class="option-item" id="${answer.id}" parent-id="${optionId}"><span class="checkbox"><img src="img/check2.png"></span><i>${answer.text}</i></li>`;
+					    			}
+					    			current_question.find(".option-cont").html(option);
+		    					})
+		    					$(".level3").each(function (index, ele) {
+		    						$(this).find(".question-one i").text(index+1);
+		    					})
+		    				}
+		    			})
+		    		} else {
+		    			//删除问题
+		    			me.recommendQuestion.answers.forEach(function (question) {
+		    				if (question.id == optionId) {
+		    					var answerIndex = me.listQuestion.recommend.level2.answers.indexOf(eval(optionId));
+		    					if (answerIndex > -1) {
+		    						me.listQuestion.recommend.level2.answers.splice(answerIndex, 1);
+		    						//其它的时候是不需要添加问题的，所以也找不到了level3的对应问题
+		    						if (question.degree == "其它") {
+		    							return
+		    						}
+		    						
+	    							$(".level3[data-id='"+optionId+"']").remove();
+		    						$(".level3").each(function (index, ele) {
+			    						$(this).find(".question-one i").text(index+1);
+			    					})
+		    					}
+		    				}
+		    			})
+		    		}
+		    	});
+		    	// level3的选中效果
+		    	me.listElem.on("click", ".level3 .option-item", function () {
+		    		var optionId = $(this).attr("id");
+		    		var questionId = $(this).attr("parent-id");
+		    		var _this = $(this);
+		    		me.listQuestion.recommend.level3.forEach(function (question) {
+		    			if (question.id == questionId) {	//表示该选项属于该问题
+		    				var answers = question.answers;
+				    		if (_this.hasClass("active")) {
+				    			answers.push(optionId);
+				    		} else{
+				    			var optionIndex = answers.indexOf(eval(optionId));
+				    			if (optionIndex > -1) {
+				    				answers.splice(optionIndex, 1);
+				    			}
+				    		}
+		    			}
+		    		})
+		    		
+		    	})
+		    },
+		    // 创建提示框 
+		    createLabel (){
+		    	let me = this;
+		    	me.listElem.on("click", ".star", function () {
+		    		me.listQuestion.score.label = [];
+		    		var num = $(this).attr("num");
+		    		
+		    		if (me.lastLabelNum && me.lastLabelNum==num) {
+		    			return;
+		    		} else {
+		    			me.lastLabelNum = num;
+		    			me.listQuestion.score.num = num;
+		    			$(".star").removeClass("active");
+		    			for (var i=0; i<num; i++) {
+		    				$(".star").eq(i).addClass("active");
+		    			}
+		    			$(".star-tip").text(me.listLabel[num-1].content);
+		    			var labelHtml = ''
+			    		me.listLabel[num-1].label.forEach(function (label) {
+			    			labelHtml += `<li class="star-label">${label}</li>`;
+			    		})
+			    		$(".star-content").html(labelHtml);
+		    		}
+		    	});
+		    },
+		    // 根据星星个数获取
+		    changeLabel() {
+		    	let me = this;
+		    	me.listElem.on("click", ".star-label", function () {
+		    		//TODO value根据接口而定
+		    		var value = $(this).text();
+		    		var num = me.listQuestion.score.label.indexOf(value);
+		    		if ($(this).hasClass("active") && num>-1) {
+		    			me.listQuestion.score.label.splice(num, 1);
+		    			$(this).removeClass("active");
+		    		} else if (!$(this).hasClass("active")) {
+		    			me.listQuestion.score.label.push(value);
+		    			$(this).addClass("active");
+		    		}
+		    	});
+		    },
+		    // 问题二的标签
+		    questionShow() {
+		    	let me = this;
+		    	me.listElem.on("click", ".question-two-scoreitem", function () {
+		    		var value = $(this).text(); // 分数
+		    		me.getQuestion(value);
+		    	});
+		    },
+		    //  提交数据
+		    submitData() {
+		    	let me =this;
+		    	// 先判断数据是否合格，在判断是否是选中 有值提交没值不提交。
+		    	
+		    	$('.question-submit').on('click', function(event) {
+		    		event.preventDefault();
+		    		var listQuestion = me.listQuestion;
+		    			
+		    		if (!listQuestion.score.num) {
+			    		console.log('题目1未完成');
+						return false
+		    		}
+		    		if(!listQuestion.recommend.score){
+			    		console.log('题目2未完成');
+						return false
+		    		}
+					if(!listQuestion.recommend.level2.id || listQuestion.recommend.level2.answers.length==0){
+			    		console.log('题目2.1未完成');					
+						return false
+		    		}
+					// 判断有没有值提交
+					if(listQuestion.score.length>0){
+						// 有标签
+					}
+					if(listQuestion.recommend.level3.lenght>0){
+						//leave3有数据
+					}
+		    	})
+		    }
+		}
+		$(function(){ 
+			questionFn.init();
+		});
+	</script>
+</html>
+
+
